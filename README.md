@@ -1,36 +1,115 @@
 # Automatización de Alertas Climáticas con n8n y LLMs 🌦️🤖
 
-Este proyecto consiste en un ecosistema de automatización que integra datos meteorológicos en tiempo real con modelos de lenguaje de gran escala (LLMs) para generar reportes inteligentes y alertas personalizadas.
+## 📌 Descripción
 
-## 🚀 Funcionalidades
-- **Extracción de Datos:** Conexión automática con APIs de clima.
-- **Análisis Inteligente:** Uso de LLMs para categorizar riesgos y redactar mensajes naturales.
-- **Clasificación Lógica:** Diferenciación de flujos de trabajo según el estado del tiempo (Ramas IF).
-- **Notificaciones:** Envío de alertas procesadas a través de Telegram.
+Este proyecto implementa un workflow automático en n8n que permite
+consultar el clima de cualquier ciudad mediante un bot de Telegram.
 
-## 🛠️ Tecnologías Utilizadas
-* **n8n:** Orquestador de flujos de trabajo.
-* **LLMs (Groq):** Procesamiento de lenguaje natural.
-* **Open-Meteo API:** Fuente de datos climáticos.
-* **Telegram Bot API:** Canal de salida para las alertas.
+El sistema utiliza APIs externas para obtener datos climáticos y modelos
+de lenguaje (LLMs) para analizar y generar respuestas dinámicas.
 
-## 📁 Estructura del Proyecto
-* `/workflows`: Contiene el archivo `.json` para importar en n8n.
-* `/docs`: Documentación detallada y especificaciones técnicas.
-* `/images`: Capturas del flujo de trabajo y resultados.
+------------------------------------------------------------------------
 
-## 📸 Visualización del Flujo
+## ⚙️ Tecnologías utilizadas
 
-### Rama: Clima Normal
-![Clima Normal](Rama-False-Clima-Normal.png) 
-*(Sustituye por el nombre exacto de tu archivo de imagen)*
+-   n8n (automatización de workflows)
+-   Telegram Bot API
+-   API Open-Meteo (datos climáticos)
+-   API Nominatim (geocoding)
+-   Groq (LLMs - Llama3)
 
-### Rama: Alerta por Lluvia
-![Alerta Clima](Rama-true-Alerta-clima.png)
-*(Sustituye por el nombre exacto de tu archivo de imagen)*
+------------------------------------------------------------------------
 
-## ⚙️ Instalación
-1. Descarga el archivo `Proyecto Final — Automatización con n8n y LLMs.json`.
-2. En tu instancia de n8n, haz clic en **Import from File**.
-3. Configura tus credenciales para la API de clima y el nodo del LLM.
-4. ¡Ejecuta el workflow!
+## 🚀 Funcionamiento
+
+1.  El usuario envía una ciudad al bot de Telegram
+2.  El sistema obtiene las coordenadas (lat/lon)
+3.  Se consultan los datos climáticos
+4.  Se limpian y estructuran los datos
+5.  LLM 1 clasifica el clima (NORMAL / LLUVIA / TORMENTA)
+6.  Un nodo IF decide la rama a seguir
+7.  LLM 2 genera una alerta si corresponde
+8.  Se envía la respuesta por Telegram
+9.  Se registran logs de la ejecución
+
+------------------------------------------------------------------------
+
+## 🧠 Modelos LLM
+
+### LLM 1 --- Clasificación
+
+-   Rol: Clasificar el clima
+-   Salida: NORMAL / LLUVIA / TORMENTA
+-   Tipo: Respuesta estructurada
+
+### LLM 2 --- Generación
+
+-   Rol: Generar alertas y explicaciones
+-   Salida: Texto amigable con recomendaciones
+
+------------------------------------------------------------------------
+
+## 🔀 Lógica condicional
+
+El flujo utiliza un nodo IF que evalúa:
+
+-   Probabilidad de lluvia \> 60%
+-   Lluvia acumulada \> 10 mm
+-   Humedad \> 80%
+
+Si alguna condición se cumple → ALERTA\
+Caso contrario → NORMAL
+
+------------------------------------------------------------------------
+
+## 📩 Notificación
+
+Se utiliza Telegram para enviar mensajes al usuario con:
+
+-   Datos del clima
+-   Recomendaciones
+-   Alertas (si corresponde)
+
+------------------------------------------------------------------------
+
+## 🛠 Logs
+
+Se implementaron logs mediante nodos Code que registran:
+
+-   Tipo de clima
+-   Ciudad
+-   Timestamp
+-   Mensaje generado
+
+Esto permite trazabilidad y debugging del sistema.
+
+------------------------------------------------------------------------
+
+## ▶️ Cómo ejecutar
+
+1.  Importar el archivo workflow.json en n8n
+2.  Configurar credenciales de:
+    -   Telegram
+    -   Groq
+3.  Publicar el workflow
+4.  Enviar una ciudad al bot de Telegram
+
+------------------------------------------------------------------------
+
+## 🧪 Pruebas
+
+Se probaron múltiples ciudades con distintos escenarios:
+
+-   Clima normal
+-   Lluvias leves
+-   Tormentas intensas
+
+El sistema respondió correctamente en todos los casos.
+
+------------------------------------------------------------------------
+
+## 🔒 Seguridad
+
+-   No se incluyen credenciales en los archivos entregados
+-   Uso de credenciales de n8n
+-   Manejo básico de errores implementado
