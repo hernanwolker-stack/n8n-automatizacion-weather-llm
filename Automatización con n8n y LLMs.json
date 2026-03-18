@@ -1,0 +1,642 @@
+{
+  "name": "Proyecto Final — Automatización con n8n y LLMs",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a532a6e-6a42-4f28-8a9b-c8710ab43fda",
+              "name": "=city",
+              "value": "={{$json.message.text}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2144,
+        -896
+      ],
+      "id": "7f369b63-66b0-4856-9fe1-499672e681a4",
+      "name": "Extraer Ciudad"
+    },
+    {
+      "parameters": {
+        "url": "https://geocoding-api.open-meteo.com/v1/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.city }}"
+            },
+            {
+              "name": "laguague",
+              "value": "es"
+            },
+            {
+              "name": "count",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1888,
+        -896
+      ],
+      "id": "c4032e62-62b6-4fa3-a760-78cd1ffcea0b",
+      "name": "HTTP Request - Obtener coordenadas de la ciudad",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "={{ $json.results[0].latitude }}"
+            },
+            {
+              "name": "longitude",
+              "value": "={{ $json.results[0].longitude }}"
+            },
+            {
+              "name": "current",
+              "value": "temperature_2m,relative_humidity_2m,precipitation,precipitation_probability"
+            },
+            {
+              "name": "daily",
+              "value": "precipitation_sum"
+            },
+            {
+              "name": "timezone",
+              "value": "auto"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1616,
+        -896
+      ],
+      "id": "cac1ec8a-2df8-41f6-b608-402b1b5fd0df",
+      "name": "HTTP Request - Obtener datos del clima",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ba4042b8-167a-411b-bc16-173fdc9725ca",
+              "name": "Ciudad",
+              "value": "={{ $('HTTP Request - Obtener coordenadas de la ciudad').item.json.results[0].name }}",
+              "type": "string"
+            },
+            {
+              "id": "0dad62d1-ce15-408b-8987-f8f27e7a870c",
+              "name": "Temperatura ",
+              "value": "={{ $json.current.temperature_2m }} ",
+              "type": "string"
+            },
+            {
+              "id": "81d34488-ccb4-4a0c-a46e-e325d70322d3",
+              "name": "Humedad",
+              "value": "={{ $json.current.relative_humidity_2m }} ",
+              "type": "string"
+            },
+            {
+              "id": "cd7f2d31-5ef6-4818-906d-5a42f7f223e3",
+              "name": "Lluvia_Hoy",
+              "value": "={{ $json.current.precipitation }} ",
+              "type": "string"
+            },
+            {
+              "id": "81ed8a6b-1d87-49b4-88d8-e690bacb9a8a",
+              "name": "Lluvia_Acumulada_Mes",
+              "value": "={{ $json.daily.precipitation_sum.reduce((a, b) => a + b, 0).toFixed(2) }} mm",
+              "type": "string"
+            },
+            {
+              "id": "d555053f-c16c-4e08-8bb1-00b893734b3a",
+              "name": "Probabilidad_Lluvia",
+              "value": "={{ $json.current.precipitation_probability }} ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1392,
+        -896
+      ],
+      "id": "57656e1e-76f6-4fff-baa8-728a3659855a",
+      "name": "Limpiar datos"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        -592
+      ],
+      "id": "38afcfbf-b647-4762-8746-5c2efcd4c925",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "vwrvSbtLkPh8KuiY",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2352,
+        -896
+      ],
+      "id": "844e9bae-19f5-4079-a41d-3bdf06a13597",
+      "name": "Telegram Trigger",
+      "webhookId": "fe82ad45-45c1-417c-96a3-49ec762a9580",
+      "credentials": {
+        "telegramApi": {
+          "id": "OdFV8oz3pn4Ekhwo",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Obtener coordenadas de la ciudad",
+        "height": 368,
+        "width": 224,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1952,
+        -1056
+      ],
+      "typeVersion": 1,
+      "id": "2b0f69cb-2de0-49c2-946b-95892e748c74",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Extraer la Ciudad",
+        "height": 368,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2208,
+        -1056
+      ],
+      "typeVersion": 1,
+      "id": "e55c6a08-31dd-4ccf-be65-8a603e98c10c",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Obtiene el clima real \nEste nodo nos dará los datos que después usará el LLM.\n\n",
+        "height": 368,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1696,
+        -1056
+      ],
+      "typeVersion": 1,
+      "id": "aea40f6e-3edf-4a26-b826-8fde0b24c4d0",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Clasifica el clima en una sola palabra.\n\nOpciones:\nNORMAL\nLLUVIA\nTORMENTA\n\nResponde SOLO UNA palabra en mayúsculas.\n\nDatos:\nTemperatura: {{ $json['Temperatura '] }}\nHumedad: {{$json.Humedad}}\nProbabilidad lluvia: {{$json.Probabilidad_Lluvia}}\nLluvia hoy: {{$json.Lluvia_Hoy}}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Clasifica el clima de forma estricta.\nResponde únicamente una palabra en mayúsculas:\nNORMAL, LLUVIA o TORMENTA.\nNo agregues texto adicional."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1184,
+        -816
+      ],
+      "id": "904e08d9-5608-4ffc-9044-83351e8ca120",
+      "name": "LLM Clasifica el clima"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "adedb917-aa89-466e-9fbc-8de9d4d74668",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "LLUVIA",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "7368fb19-01ab-4059-b2e3-9edc419e32b3",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "TORMENTA",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2224,
+        -432
+      ],
+      "id": "02348162-5ff3-4cdc-aafc-ed5573a83ecb",
+      "name": "Separar los días tranquilos de los días complicados"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        -272
+      ],
+      "id": "3215e1be-7015-4046-827d-f2ccb2223554",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "vwrvSbtLkPh8KuiY",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Genera una alerta meteorológica breve en formato claro.\n\nIncluye:\n- Tipo de problema\n- Riesgo\n- Recomendación\n\nDatos:\n📍 Ciudad: {{$node[\"Limpiar datos\"].json.Ciudad}}\n🌡 Temperatura: {{ $('Limpiar datos').item.json['Temperatura '] }}\n💧 Humedad: {{$node[\"Limpiar datos\"].json.Humedad}}\n🌧 Probabilidad lluvia: {{$node[\"Limpiar datos\"].json.Probabilidad_Lluvia}}\n☔ Lluvia hoy: {{$node[\"Limpiar datos\"].json.Lluvia_Hoy}}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Eres un experto en meteorología y protección civil.\nTu objetivo es generar alertas claras, breves y útiles para personas comunes.\nUsa un tono profesional pero fácil de entender.\nIncluye emojis relevantes (lluvia, tormenta, alerta).\nNo inventes datos. Usa solo la información proporcionada.\nSi no hay riesgo climático, responde exactamente: SIN ALERTA"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1808,
+        -432
+      ],
+      "id": "290df091-24e5-4310-a776-25f85c088f4f",
+      "name": "LLM Alerta Roja"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1456,
+        -432
+      ],
+      "id": "d75fc442-03fc-4b39-96ec-b4937eff961f",
+      "name": "Envío Alerta Clima",
+      "webhookId": "7c9dedbf-6437-4601-898d-cf52563969ad",
+      "credentials": {
+        "telegramApi": {
+          "id": "OdFV8oz3pn4Ekhwo",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "=🌤 <b>Clima en</b> 📍{{$node[\"Limpiar datos\"].json.Ciudad}}\n\n🌡 <b>Temperatura:</b> {{ $('Limpiar datos').item.json['Temperatura '] }}°C\n💧 <b>Humedad:</b> {{$node[\"Limpiar datos\"].json.Humedad}}%\n🌧 <b>Prob. lluvia:</b> {{$node[\"Limpiar datos\"].json.Probabilidad_Lluvia}}%\n🌦 <b>Lluvia hoy:</b> {{$node[\"Limpiar datos\"].json.Lluvia_Hoy}} mm\n☔ <b>Lluvia acumulada del mes:</b> {{$node[\"Limpiar datos\"].json.Lluvia_Acumulada_Mes}}\n\nTodo tranquilo 👍 Ideal para actividades al aire libre.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1456,
+        -96
+      ],
+      "id": "9f048d69-0105-4d90-ae22-061f406209a8",
+      "name": "Envío clima normal",
+      "webhookId": "7c9dedbf-6437-4601-898d-cf52563969ad",
+      "credentials": {
+        "telegramApi": {
+          "id": "OdFV8oz3pn4Ekhwo",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## LLM de clasificación \nClasifica el estado del clima en 3 variables\n\n- NORMAL\n- LLUVIA\n- TORMENTA",
+        "height": 368,
+        "width": 272
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1216,
+        -1056
+      ],
+      "typeVersion": 1,
+      "id": "f3d5ab89-5868-4a61-99fb-e384108ceb72",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## If Condicional\nSepara los dias dependiendo la variable obtenida dle anterior LLM",
+        "height": 352,
+        "width": 208,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2272,
+        -624
+      ],
+      "typeVersion": 1,
+      "id": "3337bc8f-89b8-42c8-9e0b-ea4c7a13687f",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## LLM Generador\nGenera una alerta meteorológica breve en formato claro.\nIncluye:\n- Tipo de problema\n- Riesgo\n- Recomendación\n\n",
+        "height": 352,
+        "width": 272
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1824,
+        -624
+      ],
+      "typeVersion": 1,
+      "id": "e6120122-a128-4dc2-86ef-afa282572a07",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1120,
+        -288
+      ],
+      "id": "bb2b4021-782a-4c63-ab67-a85c9cd26853",
+      "name": "Log console Respuestas"
+    },
+    {
+      "parameters": {
+        "content": "## Proyecto Final — Automatización con n8n y LLMs\n## Bot telegram clima LLM\n\n🚀 Funcionamiento\n\n1. El usuario envía una ciudad al bot de Telegram\n2. El sistema obtiene las coordenadas (lat/lon)\n3. Se consultan los datos climáticos\n4. Se limpian y estructuran los datos\n5. LLM 1 clasifica el clima (NORMAL / LLUVIA / TORMENTA)\n6. Un nodo IF decide la rama a seguir\n7. LLM 2 genera una alerta si corresponde\n8. Se envía la respuesta por Telegram\n9. Se registran logs de la ejecución",
+        "height": 352,
+        "width": 688,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2544,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "cd99baa5-d21b-4801-a09c-27199cb0682b",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Extraer Ciudad": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Obtener coordenadas de la ciudad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Obtener coordenadas de la ciudad": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Obtener datos del clima",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Obtener datos del clima": {
+      "main": [
+        [
+          {
+            "node": "Limpiar datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Clasifica el clima",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar datos": {
+      "main": [
+        [
+          {
+            "node": "LLM Clasifica el clima",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extraer Ciudad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Clasifica el clima": {
+      "main": [
+        [
+          {
+            "node": "Separar los días tranquilos de los días complicados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar los días tranquilos de los días complicados": {
+      "main": [
+        [
+          {
+            "node": "LLM Alerta Roja",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envío clima normal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Alerta Roja",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Alerta Roja": {
+      "main": [
+        [
+          {
+            "node": "Envío Alerta Clima",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envío Alerta Clima": {
+      "main": [
+        [
+          {
+            "node": "Log console Respuestas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envío clima normal": {
+      "main": [
+        [
+          {
+            "node": "Log console Respuestas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a70345da-c790-4799-afa3-8ac9adb20c6d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d5ed1405bf6f8ae87120c3c3f5ea7fda3d757a02fcba4d7860a7a7f40a47b08e"
+  },
+  "id": "D_OhpBQhgHfVdRziS9QyT",
+  "tags": [
+    {
+      "updatedAt": "2026-03-16T18:56:17.730Z",
+      "createdAt": "2026-03-16T18:56:17.730Z",
+      "id": "qx2tokamvZIK8GX2",
+      "name": "Bot telegram clima LLM"
+    }
+  ]
+}
